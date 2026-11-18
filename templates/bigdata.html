@@ -1,0 +1,215 @@
+{% extends "base.html" %}
+
+{% block title %}PySpark Big Data Processing{% endblock %}
+{% block page_title %}PySpark Big Data Engine{% endblock %}
+{% block page_subtitle %}Distributed Data Cleaning, Deduplication, Repartitioning & GroupBy Aggregations{% endblock %}
+
+{% block content %}
+<!-- Big Data Architecture Workflow Pipeline Card -->
+<div class="analytics-card mb-4">
+    <div class="card-header-clean">
+        <div>
+            <h5 class="card-title-main"><i class="bi bi-diagram-3-fill"></i> PySpark End-to-End Processing Architecture</h5>
+            <div class="card-subtitle-main">Distributed MapReduce transformation stages applied to weather observation streams</div>
+        </div>
+        <div>
+            <span class="badge {% if pyspark_available %}bg-success{% else %}bg-primary{% endif %} p-2">
+                <i class="bi bi-cpu me-1"></i> {% if pyspark_available %}Apache PySpark Distributed Active{% else %}PySpark Resilient Pipeline Active{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Pipeline Visual Workflow -->
+    <div class="row g-2 text-center my-2">
+        <div class="col-6 col-md-2">
+            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 h-100">
+                <div class="fs-4 text-primary"><i class="bi bi-file-earmark-arrow-down"></i></div>
+                <div class="fw-bold small text-white mt-1">1. Ingestion</div>
+                <div class="text-muted" style="font-size: 0.72rem;">Schema Inference & Parallel CSV Read</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 h-100">
+                <div class="fs-4 text-cyan"><i class="bi bi-trash3"></i></div>
+                <div class="fw-bold small text-white mt-1">2. Deduplication</div>
+                <div class="text-muted" style="font-size: 0.72rem;">dropDuplicates([Date, City])</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 h-100">
+                <div class="fs-4 text-warning"><i class="bi bi-wrench-adjustable-circle"></i></div>
+                <div class="fw-bold small text-white mt-1">3. Imputation</div>
+                <div class="text-muted" style="font-size: 0.72rem;">Missing Value Mean Substitution</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 h-100">
+                <div class="fs-4 text-spark"><i class="bi bi-grid-3x3"></i></div>
+                <div class="fw-bold small text-white mt-1">4. Partitioning</div>
+                <div class="text-muted" style="font-size: 0.72rem;">Hash Partition by City</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 h-100">
+                <div class="fs-4 text-purple"><i class="bi bi-layers-fill"></i></div>
+                <div class="fw-bold small text-white mt-1">5. Aggregations</div>
+                <div class="text-muted" style="font-size: 0.72rem;">GroupBy City & Conditions</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 h-100">
+                <div class="fs-4 text-success"><i class="bi bi-check2-circle"></i></div>
+                <div class="fw-bold small text-white mt-1">6. Export</div>
+                <div class="text-muted" style="font-size: 0.72rem;">Processed CSV Storage</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PySpark Control Configuration & Benchmark Overview -->
+<div class="row">
+    <!-- Pipeline Configuration Controls -->
+    <div class="col-12 col-lg-4">
+        <div class="analytics-card h-100">
+            <div class="card-header-clean">
+                <h5 class="card-title-main"><i class="bi bi-sliders"></i> Job Configuration</h5>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label small text-muted">Target Dataset File</label>
+                <div class="p-2 rounded bg-dark border border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                    <span class="small text-light font-monospace text-truncate">{{ filename }}</span>
+                    <span class="badge bg-secondary">{{ file_size_kb }} KB</span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small text-muted">Cluster Partition Slices (Shuffle Cores)</label>
+                <select class="form-select form-select-dark" id="sparkPartitionsSelect">
+                    <option value="2">2 Partitions (Lightweight)</option>
+                    <option value="4" selected>4 Partitions (Standard Multi-Core)</option>
+                    <option value="8">8 Partitions (Distributed Cluster)</option>
+                    <option value="16">16 Partitions (High-Throughput)</option>
+                </select>
+                <div class="form-text text-muted" style="font-size: 0.72rem;">Defines RDD/DataFrame shuffle partitions for parallel processing.</div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small text-muted">Missing Value Imputation Strategy</label>
+                <select class="form-select form-select-dark" id="sparkImputeSelect">
+                    <option value="mean" selected>Column Mean Imputation (Standard)</option>
+                    <option value="median">Median Imputation</option>
+                    <option value="zero">Zero Constant Substitution</option>
+                </select>
+            </div>
+
+            <div class="d-grid">
+                <button class="btn btn-spark-action py-2 fs-6" id="btnExecuteSparkJob">
+                    <span id="sparkBtnSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status"></span>
+                    <i class="bi bi-lightning-charge-fill me-1" id="sparkBtnIcon"></i> Execute PySpark Pipeline
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Execution Benchmarks & Metrics Cards -->
+    <div class="col-12 col-lg-8">
+        <div class="analytics-card h-100">
+            <div class="card-header-clean">
+                <h5 class="card-title-main"><i class="bi bi-speedometer"></i> Pipeline Execution Benchmarks</h5>
+                <span class="badge bg-success" id="sparkJobStatusBadge">IDLE / READY</span>
+            </div>
+
+            <div class="row g-3 text-center my-1">
+                <div class="col-6 col-sm-3">
+                    <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                        <div class="text-muted small">Raw Ingested</div>
+                        <div class="fs-4 fw-bold text-white mt-1" id="benchRawCount">--</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">Records</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                        <div class="text-muted small">Duplicates Purged</div>
+                        <div class="fs-4 fw-bold text-danger mt-1" id="benchDedupCount">--</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">Redundant rows</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                        <div class="text-muted small">Clean In-Memory</div>
+                        <div class="fs-4 fw-bold text-success mt-1" id="benchCleanCount">--</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">DataFrame rows</div>
+                    </div>
+                </div>
+                <div class="col-6 col-sm-3">
+                    <div class="p-3 rounded bg-dark border border-secondary border-opacity-25">
+                        <div class="text-muted small">Execution Time</div>
+                        <div class="fs-4 fw-bold text-warning mt-1"><span id="benchExecTime">--</span>s</div>
+                        <div class="text-secondary" style="font-size: 0.72rem;">Wall-clock time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Catalyst Optimizer Execution Plan Monospace Console -->
+            <div class="mt-3">
+                <div class="terminal-window">
+                    <div class="terminal-header">
+                        <div class="terminal-dot dot-red"></div>
+                        <div class="terminal-dot dot-yellow"></div>
+                        <div class="terminal-dot dot-green"></div>
+                        <span class="terminal-title">Catalyst Optimizer & Physical Execution Plan</span>
+                    </div>
+                    <pre class="terminal-body" id="sparkExecutionPlanConsole">// Awaiting PySpark execution trigger...
+Click 'Execute PySpark Pipeline' to compile catalyst plan and run RDD transformations.</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aggregation Results Table (Live PySpark GroupBy Outputs) -->
+<div class="analytics-card mt-4">
+    <div class="card-header-clean">
+        <div>
+            <h5 class="card-title-main"><i class="bi bi-table"></i> PySpark GroupBy City Aggregation Output</h5>
+            <div class="card-subtitle-main">Distributed multi-core computation of mean temperatures, precipitation totals, and barometrics</div>
+        </div>
+        <div id="sparkDownloadContainer" class="d-none">
+            <a href="{{ url_for('api_dataset_download', type='processed') }}" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-download me-1"></i> Download Aggregated CSV
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-dark-custom align-middle">
+            <thead>
+                <tr>
+                    <th>City Station</th>
+                    <th>Observations</th>
+                    <th>Avg Temp (°C)</th>
+                    <th>Max Temp (°C)</th>
+                    <th>Min Temp (°C)</th>
+                    <th>Avg Humidity (%)</th>
+                    <th>Total Rain (mm)</th>
+                    <th>Avg Wind (km/h)</th>
+                    <th>Avg Pressure (hPa)</th>
+                </tr>
+            </thead>
+            <tbody id="sparkAggTableBody">
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No pipeline execution results yet. Click "Execute PySpark Pipeline" above.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/bigdata.js') }}"></script>
+{% endblock %}

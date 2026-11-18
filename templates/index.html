@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Home Dashboard{% endblock %}
+{% block page_title %}Weather Analytics Dashboard{% endblock %}
+{% block page_subtitle %}Real-time Big Data Metrics & Environmental Indicators Overview{% endblock %}
+
+{% block content %}
+<!-- Dashboard Quick Filter Bar -->
+<div class="row mb-3 align-items-center">
+    <div class="col-12 col-md-6 mb-2 mb-md-0">
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-secondary small fw-semibold"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Location Focus:</span>
+            <select class="form-select form-select-dark d-inline-block w-auto" id="dashboardCitySelect">
+                <option value="all" selected>All Global Stations (10 Cities)</option>
+                {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+            <button class="btn btn-sm btn-outline-primary" id="btnRefreshDashboard" title="Recalculate dynamic KPIs">
+                <i class="bi bi-arrow-clockwise"></i> Refresh
+            </button>
+        </div>
+    </div>
+    <div class="col-12 col-md-6 text-md-end">
+        <div class="text-muted small">
+            <i class="bi bi-calendar-event me-1"></i> Temporal Span: 
+            <span class="text-light fw-medium">{{ date_range.min_date }}</span> to <span class="text-light fw-medium">{{ date_range.max_date }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Weather Statistics KPI Cards (8 Required Metrics) -->
+<div class="stats-grid">
+    <!-- Card 1: Total Weather Records -->
+    <div class="kpi-card accent-blue">
+        <div class="kpi-header">
+            <h6 class="kpi-title">Total Records</h6>
+            <div class="kpi-icon-badge"><i class="bi bi-database-check"></i></div>
+        </div>
+        <div class="kpi-value" id="kpiTotalRecords">--</div>
+        <div class="kpi-subtext">Ingested & Indexed Observations</div>
+    </div>
+
+    <!-- Card 2: Average Temperature -->
+    <div class="kpi-card accent-cyan">
+        <div class="kpi-header">
+            <h6 class="kpi-title">Avg Temperature</h6>
+            <div class="kpi-icon-badge"><i class="bi bi-thermometer-half"></i></div>
+        </div>
+        <div class="kpi-value"><span id="kpiAvgTemp">--</span><span class="fs-5 text-secondary">°C</span></div>
+        <div class="kpi-subtext">Calculated Mean Across Stations</div>
+    </div>
+
+    <!-- Card 3: Maximum Temperature -->
+    <div class="kpi-card accent-red">
+        <div class="kpi-header">
+            <h6 class="kpi-title">Max Temperature</h6>
+            <div class="kpi-icon-badge"><i class="bi bi-thermometer-high"></i></div>
+        </div>
+        <div class="kpi-value"><span id="kpiMaxTemp">--</span><span class="fs-5 text-secondary">°C</span></div>
+        <div class="kpi-subtext">Peak Extreme Recorded</div>
+    </div>
+
+    <!-- Card 4: Minimum Temperature -->
+    <div class="kpi-card accent-indigo">
+        <div class="kpi-header">
+            <h6 class="kpi-title">Min Temperature</h6>
+            <div class="kpi-icon-badge"><i class="bi bi-thermometer-low"></i></div>
+        </div>
+        <div class="kpi-value"><span id="kpiMinTemp">--</span><span class="fs-5 text-secondary">°C</span></div>
+        <div class="kpi-subtext">Lowest Cold Value Recorded</div>
+    </div>
+
+    <!-- Card 5: Average Humidity -->
+    <div class="kpi-card accent-emerald">
+        <div class="kpi-header">
+            <h6 class="kpi-title">Avg Humidity</h6>
+            <div class="kpi-icon-badge"><i class="bi bi-moisture"></i></div>
+        </div>
+        <div class="kpi-value"><span id="kpiAvgHumidity">--</span><span class="fs-5 text-secondary">%</span></div>
+        <div class="kpi-subtext">Relative Moisture Index</div>
+    </div>
+
+    <!-- Card 6: Total Rainfall -->
+    <div class="kpi-card accent-purple">
+        <div class="kpi-header">
+            <h6 class="kpi-title">Total Rainfall</h6>
+            <div class="kpi-icon-badge"><i class="bi bi-cloud-rain-fill"></i></div>
+        </div>
+        <div class="kpi-value"><span id="kpiTotalRainfall">--</span><span class="fs-5 text-secondary">mm</span></div>
+        <div class="kpi-subtext">Cumulative Precipitation</div>
+    </div>
+
+    <!-- Card 7: Wind Speed -->
+    <div class="kpi-card accent-orange">
+        <div class="kpi-header">
+            <h6 class="kpi-title">Avg Wind Speed</h6>
+            <div class="kpi-icon-badge"><i class="bi bi-wind"></i></div>
+        </div>
+        <div class="kpi-value"><span id="kpiAvgWind">--</span><span class="fs-5 text-secondary">km/h</span></div>
+        <div class="kpi-subtext">Mean Air Velocity</div>
+    </div>
+
+    <!-- Card 8: Weather Condition Overview -->
+    <div class="kpi-card accent-amber">
+        <div class="kpi-header">
+            <h6 class="kpi-title">Primary Condition</h6>
+            <div class="kpi-icon-badge"><i class="bi bi-sun-fill"></i></div>
+        </div>
+        <div class="kpi-value fs-3" id="kpiPrimaryCond">--</div>
+        <div class="kpi-subtext">Most Frequent Atmospheric State</div>
+    </div>
+</div>
+
+<!-- Interactive Charts Row -->
+<div class="row">
+    <!-- Temperature Trend Line Chart -->
+    <div class="col-12 col-xl-8">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-graph-up"></i> Temperature Trajectory & Extremes</h5>
+                    <div class="card-subtitle-main">Monthly average, maximum peaks, and minimum valleys across dataset timeline</div>
+                </div>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary active" id="btnTempMonthly">Monthly Aggregation</button>
+                    <button type="button" class="btn btn-outline-secondary" id="btnTempDaily">Recent 30 Days</button>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 330px;">
+                <canvas id="dashboardTempChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather Condition Distribution Doughnut -->
+    <div class="col-12 col-xl-4">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-pie-chart-fill"></i> Condition Breakdown</h5>
+                    <div class="card-subtitle-main">Proportional occurrences of atmospheric conditions</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 330px;">
+                <canvas id="dashboardConditionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary Analytics & Quick Navigation -->
+<div class="row">
+    <!-- Rainfall & Barometric Pressure Dual Chart -->
+    <div class="col-12 col-lg-7">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-cloud-drizzle"></i> Monthly Precipitation Dynamics</h5>
+                    <div class="card-subtitle-main">Total precipitation volume (mm) recorded per calendar month</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 260px;">
+                <canvas id="dashboardRainChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Big Data Quick Pipeline Launcher Card -->
+    <div class="col-12 col-lg-5">
+        <div class="analytics-card h-100 d-flex flex-column justify-content-between">
+            <div>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="card-title-main mb-0"><i class="bi bi-lightning-charge-fill text-warning"></i> PySpark Acceleration</h5>
+                    <span class="badge bg-spark">ACTIVE ENGINE</span>
+                </div>
+                <p class="text-secondary small">
+                    This Big Data platform utilizes <strong>Apache Spark DataFrame transformations</strong> to ingest, clean, partition, and aggregate large-scale multi-city environmental datasets with in-memory execution.
+                </p>
+                
+                <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 mb-3">
+                    <div class="d-flex justify-content-between small text-muted mb-1">
+                        <span>Active Pipeline Stage</span>
+                        <span class="text-success fw-bold">Ready</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <div class="row g-2 mb-3 text-center">
+                    <div class="col-4">
+                        <div class="p-2 rounded bg-surface border border-secondary border-opacity-10">
+                            <div class="fs-6 fw-bold text-white">4 Cores</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Parallelism</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 rounded bg-surface border border-secondary border-opacity-10">
+                            <div class="fs-6 fw-bold text-info">Shuffle 4</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Partitions</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-2 rounded bg-surface border border-secondary border-opacity-10">
+                            <div class="fs-6 fw-bold text-success">MapReduce</div>
+                            <div class="text-muted" style="font-size: 0.7rem;">Aggregation</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('bigdata') }}" class="btn btn-spark-action py-2">
+                    <i class="bi bi-cpu me-1"></i> Open Spark Processing Console
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

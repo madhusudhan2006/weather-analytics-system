@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Weather Data Analysis{% endblock %}
+{% block page_title %}Weather Data Analysis{% endblock %}
+{% block page_subtitle %}Analytical Deep-Dive into Multi-City Weather Patterns, Distributions & Trends{% endblock %}
+
+{% block content %}
+<!-- Filtering Controls Toolbar -->
+<div class="filter-toolbar">
+    <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-3">
+            <label class="form-label small text-muted mb-1"><i class="bi bi-geo-alt"></i> Filter by City</label>
+            <select class="form-select form-select-dark" id="analyticsCity">
+                <option value="all" selected>All Global Stations</option>
+                {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-12 col-md-3">
+            <label class="form-label small text-muted mb-1"><i class="bi bi-calendar3"></i> Start Date</label>
+            <input type="date" class="form-control form-control-dark" id="analyticsStartDate" value="{{ date_range.min_date }}">
+        </div>
+
+        <div class="col-12 col-md-3">
+            <label class="form-label small text-muted mb-1"><i class="bi bi-calendar3-range"></i> End Date</label>
+            <input type="date" class="form-control form-control-dark" id="analyticsEndDate" value="{{ date_range.max_date }}">
+        </div>
+
+        <div class="col-12 col-md-3 d-flex align-items-end gap-2">
+            <button class="btn btn-primary w-100" id="btnApplyAnalyticsFilter">
+                <i class="bi bi-funnel-fill me-1"></i> Apply Filters
+            </button>
+            <button class="btn btn-outline-secondary" id="btnResetAnalyticsFilter" title="Reset Filters">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Visualization Grid (6 Analytical Visualizations) -->
+<div class="row">
+    <!-- 1. Temperature Trends Over Time -->
+    <div class="col-12 col-lg-8">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-thermometer-sun"></i> 1. Temperature Trends Over Time</h5>
+                    <div class="card-subtitle-main">Monthly statistical thermal trajectory: Mean, Upper Bounds (Max), and Lower Bounds (Min)</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 320px;">
+                <canvas id="chartTempTrends"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Weather Condition Distribution -->
+    <div class="col-12 col-lg-4">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-pie-chart"></i> 2. Condition Distribution</h5>
+                    <div class="card-subtitle-main">Percentage frequency breakdown of weather conditions</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 320px;">
+                <canvas id="chartConditionDist"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Monthly Rainfall Analysis -->
+    <div class="col-12 col-lg-6">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-cloud-rain-heavy"></i> 3. Monthly Rainfall Analysis</h5>
+                    <div class="card-subtitle-main">Precipitation volume (bars) compared with count of rainy days (line)</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 300px;">
+                <canvas id="chartMonthlyRainfall"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Humidity Distribution -->
+    <div class="col-12 col-lg-6">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-moisture"></i> 4. Humidity Level Distribution</h5>
+                    <div class="card-subtitle-main">Observation frequency stratified into clinical relative humidity brackets</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 300px;">
+                <canvas id="chartHumidityDist"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Wind Speed Analysis -->
+    <div class="col-12 col-lg-5">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-wind"></i> 5. Wind Velocity Analysis</h5>
+                    <div class="card-subtitle-main">Stratified frequency by Beaufort velocity brackets</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 320px;">
+                <canvas id="chartWindSpeed"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. City-Wise Weather Comparison -->
+    <div class="col-12 col-lg-7">
+        <div class="analytics-card">
+            <div class="card-header-clean">
+                <div>
+                    <h5 class="card-title-main"><i class="bi bi-bar-chart-steps"></i> 6. City-Wise Weather Comparison</h5>
+                    <div class="card-subtitle-main">Side-by-side grouped benchmark: Average Temperature vs Humidity vs Total Rainfall</div>
+                </div>
+            </div>
+            <div class="chart-wrapper" style="height: 320px;">
+                <canvas id="chartCityComparison"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+{% endblock %}

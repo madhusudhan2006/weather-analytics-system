@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Weather Prediction & Insights{% endblock %}
+{% block page_title %}Weather Prediction & Predictive Insights{% endblock %}
+{% block page_subtitle %}Harmonic Machine Learning Forecasting, Extreme Weather Anomaly Detection & AI Synthesis{% endblock %}
+
+{% block content %}
+<!-- Prediction Controls & City Selector -->
+<div class="filter-toolbar">
+    <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+            <label class="form-label small text-muted mb-1"><i class="bi bi-geo-alt-fill text-danger"></i> Target City Station</label>
+            <select class="form-select form-select-dark" id="predCitySelect">
+                {% for city in cities %}
+                <option value="{{ city }}" {% if city == 'New York' %}selected{% endif %}>{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <label class="form-label small text-muted mb-1"><i class="bi bi-clock-history"></i> Forecast Projection Horizon</label>
+            <select class="form-select form-select-dark" id="predDaysSelect">
+                <option value="7">Next 7 Days</option>
+                <option value="14" selected>Next 14 Days (Standard)</option>
+                <option value="30">Next 30 Days (Extended)</option>
+            </select>
+        </div>
+
+        <div class="col-12 col-md-3 d-flex align-items-end">
+            <button class="btn btn-primary w-100" id="btnRunPrediction">
+                <i class="bi bi-cpu-fill me-1"></i> Generate Forecast
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ML Temperature Trend Forecast Section -->
+<div class="analytics-card">
+    <div class="card-header-clean">
+        <div>
+            <h5 class="card-title-main"><i class="bi bi-graph-up-arrow text-primary"></i> Machine Learning Temperature Trend & Forecast</h5>
+            <div class="card-subtitle-main" id="mlModelSubtitle">Harmonic Seasonal Polynomial Regressor with 95% Confidence Intervals</div>
+        </div>
+        
+        <!-- ML Performance Metric Badges -->
+        <div class="d-flex gap-2 flex-wrap" id="mlMetricsBadges">
+            <span class="badge bg-dark border border-secondary text-info p-2 font-monospace">R² Score: <span id="metricR2">--</span></span>
+            <span class="badge bg-dark border border-secondary text-warning p-2 font-monospace">MAE: <span id="metricMAE">--</span>°C</span>
+            <span class="badge bg-dark border border-secondary text-danger p-2 font-monospace">RMSE: <span id="metricRMSE">--</span>°C</span>
+        </div>
+    </div>
+
+    <div class="chart-wrapper" style="height: 350px;">
+        <canvas id="chartForecast"></canvas>
+    </div>
+</div>
+
+<!-- Automated Analytical Insights Synthesis Cards -->
+<div class="row my-4">
+    <div class="col-12">
+        <h5 class="fw-bold text-white mb-3"><i class="bi bi-lightbulb-fill text-warning me-2"></i> Automated Big Data Analytical Insights</h5>
+    </div>
+    <div class="col-12">
+        <div class="row g-3" id="insightsContainer">
+            <!-- Dynamic insight cards populated by JS -->
+            <div class="col-12 text-center text-muted py-3">Loading dynamic analytical observations...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Extreme Weather Events & Anomalies Section -->
+<div class="analytics-card mt-2">
+    <div class="card-header-clean">
+        <div>
+            <h5 class="card-title-main"><i class="bi bi-exclamation-triangle-fill text-warning"></i> Extreme Weather Anomaly Identification</h5>
+            <div class="card-subtitle-main">Statistically detected outliers based on Z-Score > 2.2 and 95th Percentile thresholds</div>
+        </div>
+        <!-- Threshold Summary Pill -->
+        <div class="d-none d-md-flex gap-2 text-muted small">
+            <span>Heatwave: <strong class="text-danger" id="threshHeat">--</strong>°C</span> |
+            <span>Cold Spell: <strong class="text-info" id="threshCold">--</strong>°C</span> |
+            <span>Heavy Rain: <strong class="text-primary" id="threshRain">--</strong>mm</span>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs for Extremes -->
+    <ul class="nav nav-tabs nav-tabs-dark border-secondary border-opacity-25 mb-3" id="extremeTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active text-danger fw-bold" id="tab-heat" data-bs-toggle="tab" data-bs-target="#pane-heat" type="button" role="tab">
+                <i class="bi bi-thermometer-sun me-1"></i> Heatwaves
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-info fw-bold" id="tab-cold" data-bs-toggle="tab" data-bs-target="#pane-cold" type="button" role="tab">
+                <i class="bi bi-snow me-1"></i> Severe Cold Spells
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-primary fw-bold" id="tab-rain" data-bs-toggle="tab" data-bs-target="#pane-rain" type="button" role="tab">
+                <i class="bi bi-cloud-lightning-rain-fill me-1"></i> Torrential Downpours
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link text-warning fw-bold" id="tab-wind" data-bs-toggle="tab" data-bs-target="#pane-wind" type="button" role="tab">
+                <i class="bi bi-wind me-1"></i> High Wind Gales
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="extremeTabsContent">
+        <!-- Heatwave Table -->
+        <div class="tab-pane fade show active" id="pane-heat" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-dark-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>City</th>
+                            <th>Temperature</th>
+                            <th>Weather Condition</th>
+                            <th>Anomaly Classification</th>
+                            <th>Risk Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableHeatBody">
+                        <tr><td colspan="6" class="text-center text-muted">Loading heatwave anomalies...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Cold Spells Table -->
+        <div class="tab-pane fade" id="pane-cold" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-dark-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>City</th>
+                            <th>Temperature</th>
+                            <th>Weather Condition</th>
+                            <th>Anomaly Classification</th>
+                            <th>Risk Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableColdBody">
+                        <tr><td colspan="6" class="text-center text-muted">Loading cold anomalies...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Torrential Rain Table -->
+        <div class="tab-pane fade" id="pane-rain" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-dark-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>City</th>
+                            <th>Rainfall (mm)</th>
+                            <th>Weather Condition</th>
+                            <th>Anomaly Classification</th>
+                            <th>Risk Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableRainBody">
+                        <tr><td colspan="6" class="text-center text-muted">Loading precipitation anomalies...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- High Wind Table -->
+        <div class="tab-pane fade" id="pane-wind" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table table-dark-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>City</th>
+                            <th>Wind Velocity (km/h)</th>
+                            <th>Weather Condition</th>
+                            <th>Anomaly Classification</th>
+                            <th>Risk Severity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableWindBody">
+                        <tr><td colspan="6" class="text-center text-muted">Loading wind anomalies...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/prediction.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Dataset Management{% endblock %}
+{% block page_title %}Dataset Management & Ingestion{% endblock %}
+{% block page_subtitle %}Upload, Validate, Filter, Clean, and Export Large-Scale Environmental Observation Records{% endblock %}
+
+{% block content %}
+<!-- Upload Dropzone & Dataset Operations Card -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-7">
+        <div class="analytics-card h-100">
+            <div class="card-header-clean">
+                <h5 class="card-title-main"><i class="bi bi-cloud-arrow-up text-primary"></i> Upload Weather CSV Dataset</h5>
+                <span class="badge bg-secondary font-monospace" id="uploadSupportedSchema">Required: Date, City, Temp, Humidity, Rain, Wind, Pressure, Condition</span>
+            </div>
+
+            <!-- Drag & Drop Zone -->
+            <form id="uploadCsvForm" enctype="multipart/form-data">
+                <div class="upload-dropzone" id="dropzoneArea">
+                    <input type="file" id="csvFileInput" name="file" accept=".csv" class="d-none">
+                    <div class="upload-icon"><i class="bi bi-file-earmark-arrow-up-fill"></i></div>
+                    <h6 class="text-white fw-bold mb-1">Click to browse or drag and drop a weather CSV file</h6>
+                    <p class="text-muted small mb-0">Automatic schema validation & type inference applied immediately on upload</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Active Dataset Details & Quick Actions -->
+    <div class="col-12 col-lg-5">
+        <div class="analytics-card h-100 d-flex flex-column justify-content-between">
+            <div>
+                <div class="card-header-clean">
+                    <h5 class="card-title-main"><i class="bi bi-info-circle text-info"></i> Active Data Source</h5>
+                    <span class="badge bg-success">ONLINE</span>
+                </div>
+
+                <div class="p-3 rounded bg-dark border border-secondary border-opacity-25 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Active File:</span>
+                        <span class="font-monospace text-light fw-bold small" id="activeFileLabel">{{ active_filename }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted small">Total Ingested Records:</span>
+                        <span class="fw-bold text-primary" id="datasetTotalCount">--</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Distinct Stations:</span>
+                        <span class="text-light" id="datasetCitiesCount">{{ cities|length }} Global Cities</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-outline-warning flex-fill" id="btnCleanDataset">
+                    <i class="bi bi-magic me-1"></i> Clean & Impute Nulls
+                </button>
+                <a href="{{ url_for('api_dataset_download', type='active') }}" class="btn btn-primary flex-fill">
+                    <i class="bi bi-download me-1"></i> Download CSV
+                </a>
+                <button class="btn btn-outline-danger" id="btnResetDataset" title="Restore default sample dataset">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset Default
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Record Explorer Table & Multi-Filter Bar -->
+<div class="analytics-card">
+    <div class="card-header-clean">
+        <h5 class="card-title-main"><i class="bi bi-table"></i> Weather Records Explorer</h5>
+        <div class="text-muted small">
+            Displaying <span id="tableShowingCount" class="text-light fw-bold">0</span> of <span id="tableTotalCount" class="text-light fw-bold">0</span> records
+        </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <div class="row g-2 mb-3">
+        <div class="col-12 col-md-3">
+            <input type="text" class="form-control form-control-dark" id="searchQuery" placeholder="Search city or condition...">
+        </div>
+        <div class="col-6 col-md-2">
+            <select class="form-select form-select-dark" id="filterCity">
+                <option value="all" selected>All Cities</option>
+                {% for city in cities %}
+                <option value="{{ city }}">{{ city }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select class="form-select form-select-dark" id="filterCondition">
+                <option value="all" selected>All Conditions</option>
+                {% for cond in conditions %}
+                <option value="{{ cond }}">{{ cond }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <input type="date" class="form-control form-control-dark" id="filterStartDate" placeholder="Start Date">
+        </div>
+        <div class="col-6 col-md-2">
+            <input type="date" class="form-control form-control-dark" id="filterEndDate" placeholder="End Date">
+        </div>
+        <div class="col-12 col-md-1 d-flex gap-1">
+            <button class="btn btn-primary w-100" id="btnFilterSearch" title="Filter Records">
+                <i class="bi bi-search"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-responsive">
+        <table class="table table-dark-custom align-middle">
+            <thead>
+                <tr>
+                    <th style="cursor: pointer;" id="thDate">Date <i class="bi bi-arrow-down-up small"></i></th>
+                    <th style="cursor: pointer;" id="thCity">City <i class="bi bi-arrow-down-up small"></i></th>
+                    <th style="cursor: pointer;" id="thTemp">Temp (°C) <i class="bi bi-arrow-down-up small"></i></th>
+                    <th style="cursor: pointer;" id="thHum">Humidity (%) <i class="bi bi-arrow-down-up small"></i></th>
+                    <th style="cursor: pointer;" id="thRain">Rainfall (mm) <i class="bi bi-arrow-down-up small"></i></th>
+                    <th style="cursor: pointer;" id="thWind">Wind (km/h) <i class="bi bi-arrow-down-up small"></i></th>
+                    <th style="cursor: pointer;" id="thPress">Pressure (hPa) <i class="bi bi-arrow-down-up small"></i></th>
+                    <th>Condition</th>
+                </tr>
+            </thead>
+            <tbody id="recordsTableBody">
+                <tr><td colspan="8" class="text-center text-muted py-4">Loading dataset observations...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-center mt-3 pt-2 border-top border-secondary border-opacity-25 gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">Rows per page:</span>
+            <select class="form-select form-select-dark form-select-sm w-auto" id="pageSizeSelect">
+                <option value="10">10</option>
+                <option value="20" selected>20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-1">
+            <button class="btn btn-sm btn-outline-secondary" id="btnPrevPage" disabled>
+                <i class="bi bi-chevron-left"></i> Previous
+            </button>
+            <span class="text-light small mx-2">Page <strong id="currentPageNum">1</strong> of <span id="totalPageNum">1</span></span>
+            <button class="btn btn-sm btn-outline-secondary" id="btnNextPage">
+                Next <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dataset.js') }}"></script>
+{% endblock %}
